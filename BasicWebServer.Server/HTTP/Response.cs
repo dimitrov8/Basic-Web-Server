@@ -1,22 +1,44 @@
 ﻿namespace BasicWebServer.Server.HTTP;
 
 using Enums;
+using System.Text;
 
-// Represents an HTTP response with status code, headers, and body
 public class Response
 {
-    public Response(StatusCode statusCode) // Constructor: Initializes a new Response with the provided status code
+    public Response(StatusCode statusCode)
     {
-        this.StatusCode = statusCode; // Set the status code for the response
+        this.StatusCode = statusCode;
 
-        // Add default headers for the response
-        this.Headers.Add("Server", "My Web Server");
-        this.Headers.Add("Date", $"{DateTime.UtcNow}:r");
+        this.Headers.Add(Header.SERVER, "My Web Server");
+        this.Headers.Add(Header.DATE, $"{DateTime.UtcNow:R}");
     }
 
-    public StatusCode StatusCode { get; init; } // Property: Gets the status code of the response (settable only during initialization)
+    public StatusCode StatusCode { get; init; }
 
-    public HeaderCollection Headers { get; } = new(); // Property: Gets the headers collection for the response (initialized with default headers)
+    public HeaderCollection Headers { get; } = new();
 
-    public string Body { get; set; } // Property: Gets or sets the body content of the response
+    public string Body { get; set; }
+
+    public Action<Request, Response> PreRenderAction { get; protected set; }
+
+    public override string ToString()
+    {
+        var result = new StringBuilder();
+
+        result.AppendLine($"HTTP/1.1 {(int)this.StatusCode} {this.StatusCode}");
+
+        foreach (var header in this.Headers)
+        {
+            result.AppendLine(header.ToString());
+        }
+
+        result.AppendLine();
+
+        if (!string.IsNullOrEmpty(this.Body))
+        {
+            result.Append(this.Body);
+        }
+
+        return result.ToString();
+    }
 }

@@ -1,54 +1,50 @@
 ﻿namespace BasicWebServer.Server.HTTP;
 
 using Enums;
+using System.Web;
 
-// Represents an HTTP request with method, URL, headers, and body.
 public class Request
 {
-    public Method Method { get; private set; } // HTTP method (GET, POST, etc.).
+    public Method Method { get; private set; }
 
-    public string Url { get; private set; } // Requested URL.
+    public string Url { get; private set; }
 
-    public HeaderCollection Headers { get; private set; } // Collection of HTTP headers.
+    public HeaderCollection Headers { get; private set; }
 
-    public string Body { get; private set; } // Request body content.
+    public string Body { get; private set; }
 
-    /// <summary>
-    ///     Parses a raw HTTP request string into a <see cref="Request" /> object.
-    /// </summary>
-    /// <param name="request">The raw HTTP request string to parse.</param>
-    /// <returns>A <see cref="Request" /> object representing the parsed HTTP request.</returns>
+    public IReadOnlyDictionary<string, string> Form { get; private set; }
+
     public static Request Parse(string request)
     {
-        string[] lines = request.Split("\r\n"); // Split each line.
+        string[] lines = request.Split("\r\n");
 
-        string[] startLine = lines.First().Split(" "); // First Line contains our method and URL.
-        var method = ParseMethod(startLine[0]); // Tries to parse the parse the method.
-        string url = startLine[1]; // Get the url
-        var headers = ParseHeaders(lines.Skip(1)); // Tries to parse the headers.
-        string[] bodyLines = lines.Skip(headers.Count + 2).ToArray(); // Get body lines by skipping the first line and the header liens.
-        string body = string.Join("\r\n", bodyLines); // Join the body lines to form the body part. 
+        string[] startLine = lines.First().Split(" ");
+        var method = ParseMethod(startLine[0]);
+        string url = startLine[1];
 
-        // Return the parsed HTTP Request.
+        var headers = ParseHeaders(lines.Skip(1));
+        string[] bodyLines = lines.Skip(headers.Count + 2).ToArray();
+        string body = string.Join("\r\n", bodyLines);
+
+        Dictionary<string, string> form = ParseForm(headers, body);
+
         return new Request
         {
             Method = method,
             Url = url,
             Headers = headers,
-            Body = body
+            Body = body,
+            Form = form
         };
     }
 
-    /// <summary>
-    ///     Helper method to parse the HTTP method.
-    /// </summary>
-    /// <param name="method">The string representation of the HTTP method.</param>
-    /// <returns>The parsed <see cref="Method" /> enum value.</returns>
+
     private static Method ParseMethod(string method)
     {
         try
         {
-            return (Method)Enum.Parse(typeof(Method), method, true); // Ignores casing 
+            return (Method)Enum.Parse(typeof(Method), method, true);
         }
         catch (Exception)
         {
@@ -56,11 +52,6 @@ public class Request
         }
     }
 
-    /// <summary>
-    ///     Helper method to parse HTTP headers.
-    /// </summary>
-    /// <param name="headerLines">The collection of header lines as strings.</param>
-    /// <returns>A <see cref="HeaderCollection" /> representing the parsed HTTP headers.</returns>
     private static HeaderCollection ParseHeaders(IEnumerable<string> headerLiens)
     {
         var headerCollection = new HeaderCollection();
@@ -69,22 +60,50 @@ public class Request
         {
             if (headerLine == string.Empty)
             {
-                break; // Stop parsing headers if an empty line is encountered.
+                break;
             }
 
-            string[] headerParts = headerLine.Split(":", 2); // Separates the header 'name' and 'value'.
+            string[] headerParts = headerLine.Split(":", 2);
 
-            if (headerParts.Length != 2) // Ensure that each header line is in the expected format (name and value separated by ':').
+            if (headerParts.Length != 2)
             {
-                throw new InvalidOperationException("Request is not valid."); // Throw an exception if the format is not as expected.
+                throw new InvalidOperationException("Request is not valid.");
             }
 
             string headerName = headerParts[0];
-            string value = headerParts[1].Trim();
+            string headerValue = headerParts[1].Trim();
 
-            headerCollection.Add(headerName, value); // Add the parsed header to the collection.
+            headerCollection.Add(headerName, headerValue);
         }
 
         return headerCollection;
     }
+
+    private static Dictionary<string, string> ParseForm(HeaderCollection headers, string body)
+    {
+        var formCollection = new Dictionary<string, string>();
+
+        if (headers.Contains(Header.CONTENT_TYPE)
+            && headers[Header.CONTENT_TYPE] == ContentType.FORM_URL_ENCODED)
+        {
+            Dictionary<string, string> parsedResult = ParseFormData(body);
+
+            foreach ((string name, string value) in parsedResult)
+            {
+                formCollection.Add(name, value);
+            }
+        }
+
+        return formCollection;
+    }
+
+    private static Dictionary<string, string> ParseFormData(string bodyLines)
+        => HttpUtility.UrlDecode(bodyLines)
+            .Split('&')
+            .Select(part => part.Split('='))
+            .Where(part => part.Length == 2)
+            .ToDictionary(
+                part => part[0],
+                part => part[1],
+                StringComparer.InvariantCultureIgnoreCase);
 }
