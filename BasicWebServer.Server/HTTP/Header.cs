@@ -15,6 +15,7 @@ public class Header
 
     public const string CONTENT_TYPE = "Content-Type";
     public const string CONTENT_LENGTH = "Content-Length";
+    public const string CONTENT_DISPOSITION = "Content-Disposition";
     public const string DATE = "Date";
     public const string LOCATION = "Location";
     public const string SERVER = "Server";

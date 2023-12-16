@@ -39,7 +39,7 @@ public class HttpServer
     {
     }
 
-    public void Start()
+    public async Task Start()
     {
         this.serverListener.Start();
 
@@ -48,29 +48,32 @@ public class HttpServer
 
         while (true)
         {
-            var connection = this.serverListener.AcceptTcpClient();
+            var connection = await this.serverListener.AcceptTcpClientAsync();
 
-            var networkStream = connection.GetStream();
-
-            string requestText = this.ReadRequest(networkStream);
-
-            Console.WriteLine(requestText);
-            var request = Request.Parse(requestText);
-            var response = this.routingTable.MatchRequest(request);
-
-            // Execute pre-render action for the response
-            if (response.PreRenderAction != null)
+            _ = Task.Run(async () =>
             {
-                response.PreRenderAction(request, response);
-            }
+                var networkStream = connection.GetStream();
 
-            WriteResponse(networkStream, response);
+                string requestText = await this.ReadRequest(networkStream);
 
-            connection.Close();
+                Console.WriteLine(requestText);
+                var request = Request.Parse(requestText);
+                var response = this.routingTable.MatchRequest(request);
+
+                // Execute pre-render action for the response
+                if (response.PreRenderAction != null)
+                {
+                    response.PreRenderAction(request, response);
+                }
+
+                await WriteResponse(networkStream, response);
+
+                connection.Close();
+            });
         }
     }
 
-    private string ReadRequest(NetworkStream networkStream)
+    private async Task<string> ReadRequest(NetworkStream networkStream)
     {
         byte[] buffer = new byte[BUFFER_LENGTH];
         var requestBuilder = new StringBuilder();
@@ -79,7 +82,7 @@ public class HttpServer
 
         do
         {
-            int bytesRead = networkStream.Read(buffer, 0, BUFFER_LENGTH);
+            int bytesRead = await networkStream.ReadAsync(buffer, 0, BUFFER_LENGTH);
             totalBytes += bytesRead;
 
             if (totalBytes > MAX_REQUEST_SIZE)
@@ -93,9 +96,9 @@ public class HttpServer
         return requestBuilder.ToString();
     }
 
-    static void WriteResponse(NetworkStream networkStream, Response response)
+    static async Task WriteResponse(NetworkStream networkStream, Response response)
     {
         byte[] responseBytes = Encoding.UTF8.GetBytes(response.ToString());
-        networkStream.Write(responseBytes, 0, responseBytes.Length);
+        await networkStream.WriteAsync(responseBytes, 0, responseBytes.Length);
     }
 }
