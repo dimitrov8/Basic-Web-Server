@@ -3,6 +3,7 @@
 using HTTP;
 using Routing;
 using Routing.Contracts;
+using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -66,6 +67,8 @@ public class HttpServer
                     response.PreRenderAction(request, response);
                 }
 
+                this.AddSession(request, response);
+
                 await WriteResponse(networkStream, response);
 
                 connection.Close();
@@ -94,6 +97,20 @@ public class HttpServer
         } while (networkStream.DataAvailable); // May not run correctly over the Internet
 
         return requestBuilder.ToString();
+    }
+
+    private void AddSession(Request request, Response response)
+    {
+        bool sessionExists = request.Session
+            .ContainsKey(Session.SESSION_CURRENT_DATE_KEY);
+
+        if (!sessionExists)
+        {
+            string currentDate = DateTime.UtcNow.ToString("dd-MMM-yyyy hh:mm:ss tt", CultureInfo.InvariantCulture);
+            request.Session[Session.SESSION_CURRENT_DATE_KEY] = currentDate;
+            response.Cookies
+                .Add(Session.SESSION_COOKIE_NAME, request.Session.Id);
+        }
     }
 
     static async Task WriteResponse(NetworkStream networkStream, Response response)

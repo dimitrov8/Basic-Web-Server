@@ -5,13 +5,19 @@ using System.Web;
 
 public class Request
 {
+    private static readonly Dictionary<string, Session> Sessions = new();
+
     public Method Method { get; private set; }
 
     public string Url { get; private set; }
 
     public HeaderCollection Headers { get; private set; }
 
+    public CookieCollection Cookies { get; private set; }
+
     public string Body { get; private set; }
+
+    public Session Session { get; private set; }
 
     public IReadOnlyDictionary<string, string> Form { get; private set; }
 
@@ -24,6 +30,10 @@ public class Request
         string url = startLine[1];
 
         var headers = ParseHeaders(lines.Skip(1));
+        var cookies = ParseCookies(headers);
+
+        var session = GetSession(cookies);
+
         string[] bodyLines = lines.Skip(headers.Count + 2).ToArray();
         string body = string.Join("\r\n", bodyLines);
 
@@ -34,7 +44,9 @@ public class Request
             Method = method,
             Url = url,
             Headers = headers,
+            Cookies = cookies,
             Body = body,
+            Session = session,
             Form = form
         };
     }
@@ -78,6 +90,46 @@ public class Request
 
         return headerCollection;
     }
+
+    private static CookieCollection ParseCookies(HeaderCollection headers)
+    {
+        var cookieCollection = new CookieCollection();
+
+        if (headers.Contains(Header.COOKIE))
+        {
+            string cookieHeader = headers[Header.COOKIE];
+
+            string[] allCookies = cookieHeader.Split(';');
+
+            foreach (string cookieText in allCookies)
+            {
+                string[] cookieParts = cookieText.Split('=');
+
+                string cookieName = cookieParts[0].Trim();
+                string cookieValue = cookieParts[1].Trim();
+
+                cookieCollection.Add(cookieName, cookieValue);
+            }
+        }
+
+        return cookieCollection;
+    }
+
+
+    private static Session GetSession(CookieCollection cookies)
+    {
+        string sessionId = cookies.Contains(Session.SESSION_COOKIE_NAME)
+            ? cookies[Session.SESSION_COOKIE_NAME]
+            : Guid.NewGuid().ToString();
+
+        if (!Sessions.ContainsKey(sessionId))
+        {
+            Sessions[sessionId] = new Session(sessionId);
+        }
+
+        return Sessions[sessionId];
+    }
+
 
     private static Dictionary<string, string> ParseForm(HeaderCollection headers, string body)
     {

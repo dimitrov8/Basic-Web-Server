@@ -17,6 +17,8 @@ public class Response
 
     public HeaderCollection Headers { get; } = new();
 
+    public CookieCollection Cookies { get; } = new();
+
     public string Body { get; set; }
 
     public Action<Request, Response> PreRenderAction { get; protected set; }
@@ -30,6 +32,11 @@ public class Response
         foreach (var header in this.Headers)
         {
             result.AppendLine(header.ToString());
+        }
+
+        foreach (var cookie in this.Cookies)
+        {
+            result.AppendLine($"{Header.SET_COOKIE}: {cookie}");
         }
 
         result.AppendLine();
