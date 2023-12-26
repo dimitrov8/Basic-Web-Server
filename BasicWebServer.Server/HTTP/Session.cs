@@ -5,7 +5,10 @@ using Common;
 public class Session
 {
     public const string SESSION_COOKIE_NAME = "MyWebServerSID";
+
     public const string SESSION_CURRENT_DATE_KEY = "CurrentDate";
+
+    public const string SESSION_USER_KEY = "AuthenticatedUserId";
 
     private readonly Dictionary<string, string> data;
 
@@ -28,4 +31,7 @@ public class Session
 
     public bool ContainsKey(string key)
         => this.data.ContainsKey(key);
+
+    public void Clear()
+        => this.data.Clear();
 }

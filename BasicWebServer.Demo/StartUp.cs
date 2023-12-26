@@ -20,6 +20,15 @@ public class StartUp
 
     private const string FILE_NAME = "content.txt";
 
+    private const string LOGIN_FORM = @"<form action='/Login' method='POST'>
+        Username: <input type='text' name='Username'/>
+        Password: <input type='text' name='Password'/>
+        <input type='submit' value='Log In' />
+</form>";
+
+    private const string USERNAME = "user";
+    private const string PASSWORD = "user123";
+
     public static async Task Main()
     {
         await DownloadSitesAsTextFile(FILE_NAME, new[] { "https://judge.softuni.org", "https://softuni.org" });
@@ -32,7 +41,11 @@ public class StartUp
                 .MapGet("/Content", new HtmlResponse(DOWNLOAD_FORM))
                 .MapPost("/Content", new TextFileResponse(FILE_NAME))
                 .MapGet("/Cookies", new HtmlResponse("", AddCookiesAction))
-                .MapGet("/Session", new TextResponse("", DisplaySessionInfoAction)))
+                .MapGet("/Session", new TextResponse("", DisplaySessionInfoAction))
+                .MapGet("/Login", new HtmlResponse(LOGIN_FORM))
+                .MapPost("/Login", new HtmlResponse("", LoginAction))
+                .MapGet("/Logout", new HtmlResponse("", LogoutAction))
+                .MapGet("/UserProfile", new HtmlResponse("", GetUserDataAction)))
             .Start();
     }
 
@@ -126,5 +139,61 @@ public class StartUp
 
         response.Body = "";
         response.Body += bodyText;
+    }
+
+    private static void LoginAction(Request request, Response response)
+    {
+        request.Session.Clear();
+
+        string bodyText = "";
+
+        // var sessionBeforeLogin = request.Session;
+        bool usernameMatches = request.Form["Username"] == USERNAME;
+        bool passwordMatches = request.Form["Password"] == PASSWORD;
+
+        if (usernameMatches && passwordMatches)
+        {
+            request.Session[Session.SESSION_USER_KEY] = "MyUserId";
+            response.Cookies.Add(Session.SESSION_COOKIE_NAME, request.Session.Id);
+
+            bodyText = "<h3>Logged successfully!</h3>";
+
+            // var sessionAfterLogin = request.Session;
+        }
+        else
+        {
+            bodyText = LOGIN_FORM;
+        }
+
+        response.Body = "";
+        response.Body += bodyText;
+    }
+
+    private static void LogoutAction(Request request, Response response)
+    {
+        // var sessionBeforeClear = request.Session;
+
+        request.Session.Clear();
+
+        response.Body = "";
+        response.Body += "<h3>Logged out successfully!</h3>";
+
+        // var sessionAfterLogout = request.Session;
+    }
+
+    private static void GetUserDataAction(Request request, Response response)
+    {
+        if (request.Session.ContainsKey(Session.SESSION_USER_KEY))
+        {
+            response.Body = "";
+            response.Body += $"<h3>Currently logged-in user " +
+                             $"is with username '{USERNAME}'</h3>";
+        }
+        else
+        {
+            response.Body = "";
+            response.Body += "<h3>You should first log in - " +
+                             "<a href='/Login'>Login</a></h3>";
+        }
     }
 }
