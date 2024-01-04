@@ -8,10 +8,12 @@ using Responses;
 
 public class RoutingTable : IRoutingTable
 {
-    private readonly Dictionary<Method, Dictionary<string, Response>> routes;
+    private readonly Dictionary<
+        Method,
+        Dictionary<string, Func<Request, Response>>> routes;
 
     public RoutingTable()
-        => this.routes = new Dictionary<Method, Dictionary<string, Response>>
+        => this.routes = new Dictionary<Method, Dictionary<string, Func<Request, Response>>>
 
         {
             [Method.Get] = new(),
@@ -20,33 +22,25 @@ public class RoutingTable : IRoutingTable
             [Method.Delete] = new()
         };
 
-    public IRoutingTable Map(string url, Method method, Response response)
-        => method switch
-        {
-            Method.Get => this.MapGet(url, response),
-            Method.Post => this.MapPost(url, response),
-            _ => throw new InvalidOperationException($"Method '{method}' is not supported.")
-        };
-
-    public IRoutingTable MapGet(string url, Response response)
+    public IRoutingTable Map(Method method,
+        string path,
+        Func<Request, Response> responseFunction)
     {
-        Guard.AgainstNull(url, nameof(url));
-        Guard.AgainstNull(response, nameof(response));
+        Guard.AgainstNull(path, nameof(path));
+        Guard.AgainstNull(responseFunction, nameof(responseFunction));
 
-        this.routes[Method.Get][url] = response;
+        this.routes[method][path] = responseFunction;
 
         return this;
     }
 
-    public IRoutingTable MapPost(string url, Response response)
-    {
-        Guard.AgainstNull(url, nameof(url));
-        Guard.AgainstNull(response, nameof(response));
+    public IRoutingTable MapGet(string path,
+        Func<Request, Response> responseFunction)
+        => this.Map(Method.Get, path, responseFunction);
 
-        this.routes[Method.Post][url] = response;
-
-        return this;
-    }
+    public IRoutingTable MapPost(string path,
+        Func<Request, Response> responseFunction)
+        => this.Map(Method.Post, path, responseFunction);
 
     public Response MatchRequest(Request request)
     {
@@ -59,6 +53,8 @@ public class RoutingTable : IRoutingTable
             return new NotFoundResponse();
         }
 
-        return this.routes[requestMethod][requestUrl];
+        Func<Request, Response> responseFunction = this.routes[requestMethod][requestUrl];
+
+        return responseFunction(request);
     }
 }

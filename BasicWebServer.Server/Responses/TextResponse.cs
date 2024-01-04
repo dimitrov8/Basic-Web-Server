@@ -4,8 +4,8 @@ using HTTP;
 
 public class TextResponse : ContentResponse
 {
-    public TextResponse(string text, Action<Request, Response> preRenderAction = null) :
-        base(text, ContentType.PLAIN_TEXT, preRenderAction)
+    public TextResponse(string text)
+        : base(text, ContentType.PLAIN_TEXT)
     {
     }
 }
