@@ -1,8 +1,8 @@
 ﻿namespace BasicWebServer.Demo;
 
+using Controllers;
 using Server;
 using Server.Controllers;
-using Server.HTTP;
 
 public class StartUp
 {
