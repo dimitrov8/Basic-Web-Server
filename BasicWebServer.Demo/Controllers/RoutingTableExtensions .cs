@@ -1,13 +1,25 @@
-﻿namespace BasicWebServer.Server.Controllers;
+﻿namespace BasicWebServer.Demo.Controllers;
 
-using HTTP;
-using Routing.Contracts;
+using Server.HTTP;
+using Server.Routing.Contracts;
+using System.Reflection;
 
 public static class RoutingTableExtensions
 {
     private static TController CreateController<TController>(Request request)
         => (TController)Activator
             .CreateInstance(typeof(TController), request);
+
+    private static Controller CreateController(Type controllerType, Request request)
+    {
+        var controller = (Controller)Request.ServiceCollection.CreateInstance(controllerType);
+
+        controllerType
+            .GetProperty("Request", BindingFlags.Instance | BindingFlags.NonPublic)
+            .SetValue(controller, request);
+
+        return controller;
+    }
 
     public static IRoutingTable MapGet<TController>(
         this IRoutingTable routingTable,

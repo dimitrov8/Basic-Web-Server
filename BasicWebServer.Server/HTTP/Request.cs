@@ -1,5 +1,6 @@
 ﻿namespace BasicWebServer.Server.HTTP;
 
+using Common;
 using Enums;
 using System.Web;
 
@@ -21,8 +22,12 @@ public class Request
 
     public IReadOnlyDictionary<string, string> Form { get; private set; }
 
-    public static Request Parse(string request)
+    public static IServiceCollection ServiceCollection { get; private set; }
+
+    public static Request Parse(string request, IServiceCollection serviceCollection)
     {
+        ServiceCollection = serviceCollection;
+
         string[] lines = request.Split("\r\n");
 
         string[] startLine = lines.First().Split(" ");
@@ -50,7 +55,6 @@ public class Request
             Form = form
         };
     }
-
 
     private static Method ParseMethod(string method)
     {

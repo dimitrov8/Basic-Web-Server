@@ -1,6 +1,5 @@
 ﻿namespace BasicWebServer.Demo.Controllers;
 
-using Server.Controllers;
 using Server.HTTP;
 
 public class UsersController : Controller

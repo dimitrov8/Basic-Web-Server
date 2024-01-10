@@ -1,7 +1,7 @@
-﻿namespace BasicWebServer.Server.Controllers;
+﻿namespace BasicWebServer.Demo.Controllers;
 
-using HTTP;
-using Responses;
+using Server.HTTP;
+using Server.Responses;
 using System.Runtime.CompilerServices;
 
 public abstract class Controller

@@ -1,7 +1,6 @@
 ﻿namespace BasicWebServer.Demo.Controllers;
 
 using Models;
-using Server.Controllers;
 using Server.HTTP;
 using Server.Responses;
 using System.Text;

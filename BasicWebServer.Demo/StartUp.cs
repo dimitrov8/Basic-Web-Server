@@ -2,7 +2,6 @@
 
 using Controllers;
 using Server;
-using Server.Controllers;
 
 public class StartUp
 {
